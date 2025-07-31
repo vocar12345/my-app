@@ -1,7 +1,8 @@
 import { Navigate, Outlet } from "react-router-dom";
+import { useAuth } from "@/context/AuthContext"; // Import our new hook
 
 const AuthLayout = () => {
-  const isAuthenticated = false; // Replace with actual authentication logic
+  const { isAuthenticated } = useAuth(); // Get real auth state from our context
 
   return (
     <>

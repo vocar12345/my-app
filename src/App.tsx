@@ -1,13 +1,16 @@
-import React from 'react'
-import { Routes, Route } from 'react-router-dom'
-import './App.css'
-import SignInForm from './_auth/forms/SignInForm'
-import SignUpForm from './_auth/forms/SignUpForm'
-import AuthLayout from './_auth/AuthLayout'
-import RootLayout from './_root/RootLayout'
-import { Home } from './_root/pages'
+import { Routes, Route, Navigate } from 'react-router-dom';
+import { useAuth } from './context/AuthContext';
 
-function App() {
+import AuthLayout from './_auth/AuthLayout';
+import SignInForm from './_auth/forms/SignInForm';
+import SignUpForm from './_auth/forms/SignUpForm';
+
+import RootLayout from './_root/RootLayout';
+import { Home, CreatePost } from './_root/pages'; // Import CreatePost
+
+const App = () => {
+  const { isAuthenticated } = useAuth();
+
   return (
     <main className="flex h-screen">
       <Routes>
@@ -17,17 +20,20 @@ function App() {
           <Route path="/sign-up" element={<SignUpForm />} />
         </Route>
 
-        {/* Private routes */}
-        <Route element={<RootLayout />}>
-          <Route index element={<Home />} />
-        </Route>
+        {/* Protected routes */}
+        {isAuthenticated ? (
+          <Route element={<RootLayout />}>
+            <Route index element={<Home />} />
+            <Route path="/create-post" element={<CreatePost />} /> {/* Add this new route */}
+          </Route>
+        ) : (
+          <Route path="*" element={<Navigate to="/sign-in" replace />} />
+        )}
       </Routes>
     </main>
-  )
-}
+  );
+};
 
-export default App
-
-
+export default App;
 
 
