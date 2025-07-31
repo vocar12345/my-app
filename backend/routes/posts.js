@@ -45,4 +45,29 @@ router.post('/', protect, (req, res) => {
   });
 });
 
+// GET /api/posts - Fetch all posts for the feed
+router.get('/', async (req, res) => {
+  try {
+    // The SQL query joins posts with users to get the username
+    // and orders by the latest post first.
+    const sql = `
+      SELECT 
+        p.Post_id, 
+        p.Post_caption, 
+        p.Post_imageurl, 
+        p.created_at,
+        u.User_username 
+      FROM posts AS p
+      JOIN users AS u ON p.User_account_id = u.User_account_id
+      ORDER BY p.created_at DESC
+    `;
+
+    const [posts] = await db.query(sql);
+    res.status(200).json(posts);
+
+  } catch (error) {
+    console.error("Error fetching posts:", error);
+    res.status(500).json({ message: "Server error while fetching posts" });
+  }
+});
 export default router;
