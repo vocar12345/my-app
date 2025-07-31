@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom'; // Import Link
 import axios from 'axios';
-import { useAuth } from '@/context/AuthContext'; // Import useAuth to get the current user
+import { useAuth } from '@/context/AuthContext';
 
-// Update the Post type to include like information
+// Interface for the Post data
 interface Post {
   Post_id: number;
   Post_caption: string;
@@ -17,9 +18,8 @@ const Home = () => {
   const [posts, setPosts] = useState<Post[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const { user } = useAuth(); // Get the currently logged-in user
+  const { user } = useAuth();
 
-  // This function will be passed to the LikeButton
   const handleLikeToggle = (postId: number, newLikedStatus: boolean, newLikeCount: number) => {
     setPosts(currentPosts =>
       currentPosts.map(p =>
@@ -32,10 +32,8 @@ const Home = () => {
 
   useEffect(() => {
     const fetchPosts = async () => {
-      if (!user) return; // Don't fetch if the user isn't loaded yet
-
+      if (!user) return;
       try {
-        // We now send the user's ID to the backend to check if they've liked each post
         const response = await axios.get(`http://localhost:5000/api/posts?userId=${user.id}`);
         setPosts(response.data);
       } catch (err) {
@@ -45,27 +43,29 @@ const Home = () => {
         setIsLoading(false);
       }
     };
-
     fetchPosts();
-  }, [user]); // Re-fetch posts if the user changes
+  }, [user]);
 
   if (isLoading) return <div>Loading posts...</div>;
   if (error) return <div className="text-red-500">{error}</div>;
 
   return (
     <div className='flex flex-1'>
-      <div className='home-container'>
+      <div className='home-container p-4 md:p-8'>
         <h2 className="h3-bold md:h2-bold text-left w-full">Home Feed</h2>
         <div className="mt-8 flex flex-col gap-9">
           {posts.length === 0 ? (
             <p>No posts yet. Be the first to create one!</p>
           ) : (
             posts.map((post) => (
-              <div key={post.Post_id} className="post-card bg-gray-800 p-5 rounded-xl">
+              <div key={post.Post_id} className="post-card bg-gray-800 p-5 rounded-xl max-w-screen-sm mx-auto">
                 <div className="flex-between">
                   <div className="flex items-center gap-3">
                     <div className="w-12 h-12 rounded-full bg-gray-600"></div>
-                    <p className="font-semibold">{post.User_username}</p>
+                    {/* This is the updated part with the Link component */}
+                    <Link to={`/profile/${post.User_username}`} className="font-semibold hover:underline">
+                      {post.User_username}
+                    </Link>
                   </div>
                 </div>
                 <div className="py-5">
@@ -76,7 +76,6 @@ const Home = () => {
                   alt="post image"
                   className="post-card_img rounded-lg"
                 />
-                {/* Like Button and Count */}
                 <div className="flex items-center gap-2 mt-4">
                   <LikeButton
                     post={post}
@@ -94,7 +93,6 @@ const Home = () => {
 };
 
 // --- LikeButton Component ---
-// A separate component to manage the state and API calls for a single like button.
 interface LikeButtonProps {
   post: Post;
   onLikeToggle: (postId: number, newLikedStatus: boolean, newLikeCount: number) => void;
@@ -107,16 +105,13 @@ const LikeButton = ({ post, onLikeToggle }: LikeButtonProps) => {
   const handleLike = async () => {
     if (isSubmitting) return;
     setIsSubmitting(true);
-
     try {
       if (post.user_has_liked) {
-        // --- Unlike the post ---
         await axios.delete(`http://localhost:5000/api/posts/${post.Post_id}/like`, {
           headers: { 'Authorization': `Bearer ${token}` }
         });
         onLikeToggle(post.Post_id, false, post.like_count - 1);
       } else {
-        // --- Like the post ---
         await axios.post(`http://localhost:5000/api/posts/${post.Post_id}/like`, {}, {
           headers: { 'Authorization': `Bearer ${token}` }
         });
