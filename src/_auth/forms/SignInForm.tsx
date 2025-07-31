@@ -5,12 +5,12 @@ import z from 'zod';
 import { zodResolver } from "@hookform/resolvers/zod";
 import axios from 'axios';
 import { Loader } from 'lucide-react';
+import { useAuth } from '@/context/AuthContext';
 
 import { Button } from "@/components/ui/button";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 
-// Validation schema for the sign-in form
 const SignInValidation = z.object({
   email: z.string().email(),
   password: z.string().min(8, { message: 'Password must be at least 8 characters.' }),
@@ -19,14 +19,11 @@ const SignInValidation = z.object({
 const SignInForm = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const navigate = useNavigate();
+  const auth = useAuth();
 
   const form = useForm<z.infer<typeof SignInValidation>>({
     resolver: zodResolver(SignInValidation),
-    defaultValues: {
-      email: "",
-      password: "",
-    },
+    defaultValues: { email: "", password: "" },
   });
 
   async function onSubmit(values: z.infer<typeof SignInValidation>) {
@@ -35,17 +32,14 @@ const SignInForm = () => {
     try {
       const response = await axios.post('http://localhost:5000/api/auth/login', values);
       
-      // Store the token in local storage to persist the session
-      localStorage.setItem('token', response.data.token);
-
-      console.log('Login successful!', response.data);
-      navigate('/'); // Redirect to homepage on success
+      auth.login(response.data.token);
+      // The navigate('/') line that was here has been removed.
 
     } catch (err) {
       if (axios.isAxiosError(err) && err.response) {
-        setError(err.response.data.message || 'Login failed. Please check your credentials.');
+        setError(err.response.data.message || 'Login failed.');
       } else {
-        setError('An unexpected error occurred. Please try again.');
+        setError('An unexpected error occurred.');
       }
     } finally {
       setIsLoading(false);
@@ -60,7 +54,6 @@ const SignInForm = () => {
         <p className="text-light-3 small-medium md:base-regular mt-2">
           Welcome back! Please enter your details.
         </p>
-
         <form onSubmit={form.handleSubmit(onSubmit)} className="flex flex-col gap-5 w-full mt-4">
           <FormField
             control={form.control}
@@ -84,13 +77,10 @@ const SignInForm = () => {
               </FormItem>
             )}
           />
-          
           {error && <p className="text-sm text-red-500">{error}</p>}
-
           <Button type="submit" className="shad-button_primary" disabled={isLoading}>
             {isLoading ? (<div className="flex-center gap-2"><Loader /> Loading...</div>) : "Log in"}
           </Button>
-
           <p className="text-small-regular text-light-2 text-center mt-2">
             Don't have an account?
             <Link to="/sign-up" className="text-primary-500 text-small-semibold ml-1">Sign up</Link>

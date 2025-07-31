@@ -7,9 +7,11 @@ interface User {
   username: string;
 }
 
+// This is the interface that needs to be updated
 interface AuthContextType {
   isAuthenticated: boolean;
   user: User | null;
+  login: (token: string) => void; // Add the login function type here
   logout: () => void;
 }
 
@@ -25,12 +27,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     if (token) {
       try {
         const decodedToken: { user: User; exp: number } = jwtDecode(token);
-        // Check if the token is expired
         if (decodedToken.exp * 1000 > Date.now()) {
           setIsAuthenticated(true);
           setUser(decodedToken.user);
         } else {
-          // Token is expired
           localStorage.removeItem('token');
         }
       } catch (error) {
@@ -40,6 +40,15 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   }, []);
 
+  // This is the new login function
+  const login = (token: string) => {
+    localStorage.setItem('token', token);
+    const decodedToken: { user: User } = jwtDecode(token);
+    setIsAuthenticated(true);
+    setUser(decodedToken.user);
+    navigate('/'); // Redirect after state is set
+  };
+
   const logout = () => {
     localStorage.removeItem('token');
     setIsAuthenticated(false);
@@ -47,8 +56,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     navigate('/sign-in');
   };
 
+  // Provide the login function to the context
   return (
-    <AuthContext.Provider value={{ isAuthenticated, user, logout }}>
+    <AuthContext.Provider value={{ isAuthenticated, user, login, logout }}>
       {children}
     </AuthContext.Provider>
   );
