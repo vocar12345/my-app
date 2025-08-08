@@ -89,7 +89,8 @@ const Profile = () => {
   if (!profile) return <div className="p-4 text-center">User not found.</div>;
 
   return (
-    <div className="profile-container p-4 md:p-8 w-full">
+    // --- AESTHETIC UPDATE: Centered container with max-width ---
+    <div className="profile-container w-full max-w-5xl p-4 md:p-8">
       <div className="profile-inner_container flex flex-col sm:flex-row items-center sm:items-start gap-8">
         <img 
           src={profile.User_image ? `http://localhost:5000${profile.User_image}` : '/assets/icons/profile-placeholder.svg'}
@@ -123,7 +124,7 @@ const Profile = () => {
       <h3 className="font-bold text-xl w-full my-10 border-t border-gray-600 pt-6">Posts</h3>
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-8">
         {posts.map((post) => (
-          <div key={post.Post_id} className="relative group bg-gray-800 p-4 rounded-xl">
+          <div key={post.Post_id} className="relative group bg-gray-800 p-4 rounded-xl shadow-lg">
             <img src={`http://localhost:5000${post.Post_imageurl}`} alt="post" className="w-full h-48 object-cover rounded-lg" />
             <p className="text-white mt-2 truncate">{post.Post_caption}</p>
             <div className="flex justify-between items-center mt-2">
@@ -143,10 +144,7 @@ const Profile = () => {
 
 // --- Child Components ---
 
-interface FollowButtonProps {
-  profile: UserProfile;
-  onFollowToggle: (newFollowStatus: boolean) => void;
-}
+interface FollowButtonProps { profile: UserProfile; onFollowToggle: (newFollowStatus: boolean) => void; }
 const FollowButton = ({ profile, onFollowToggle }: FollowButtonProps) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const token = localStorage.getItem('token');
@@ -164,17 +162,10 @@ const FollowButton = ({ profile, onFollowToggle }: FollowButtonProps) => {
     } catch (error) { console.error("Failed to update follow status", error); }
     finally { setIsSubmitting(false); }
   };
-  return (
-    <button onClick={handleFollow} disabled={isSubmitting} className={`p-2 rounded text-white ${profile.is_following ? 'bg-gray-500' : 'bg-blue-600 hover:bg-blue-700'}`}>
-      {profile.is_following ? 'Unfollow' : 'Follow'}
-    </button>
-  );
+  return ( <button onClick={handleFollow} disabled={isSubmitting} className={`p-2 rounded text-white ${profile.is_following ? 'bg-gray-500' : 'bg-blue-600 hover:bg-blue-700'}`}> {profile.is_following ? 'Unfollow' : 'Follow'} </button> );
 };
 
-interface LikeButtonProps {
-  post: Post;
-  onLikeToggle: (postId: number, newLikedStatus: boolean, newLikeCount: number) => void;
-}
+interface LikeButtonProps { post: Post; onLikeToggle: (postId: number, newLikedStatus: boolean, newLikeCount: number) => void; }
 const LikeButton = ({ post, onLikeToggle }: LikeButtonProps) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const token = localStorage.getItem('token');
@@ -192,17 +183,10 @@ const LikeButton = ({ post, onLikeToggle }: LikeButtonProps) => {
     } catch (error) { console.error("Failed to update like status", error); }
     finally { setIsSubmitting(false); }
   };
-  return (
-    <button onClick={handleLike} disabled={isSubmitting}>
-      <img src={`/assets/icons/${post.user_has_liked ? 'liked.svg' : 'like.svg'}`} alt="like" width={20} height={20} />
-    </button>
-  );
+  return ( <button onClick={handleLike} disabled={isSubmitting}> <img src={`/assets/icons/${post.user_has_liked ? 'liked.svg' : 'like.svg'}`} alt="like" width={20} height={20} /> </button> );
 };
 
-interface SaveButtonProps {
-  post: Post;
-  onSaveToggle: (postId: number, newSavedStatus: boolean) => void;
-}
+interface SaveButtonProps { post: Post; onSaveToggle: (postId: number, newSavedStatus: boolean) => void; }
 const SaveButton = ({ post, onSaveToggle }: SaveButtonProps) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const token = localStorage.getItem('token');
@@ -220,11 +204,7 @@ const SaveButton = ({ post, onSaveToggle }: SaveButtonProps) => {
     } catch (error) { console.error("Failed to update save status", error); }
     finally { setIsSubmitting(false); }
   };
-  return (
-    <button onClick={handleSave} disabled={isSubmitting}>
-      <img src={`/assets/icons/${post.user_has_saved ? 'saved.svg' : 'save.svg'}`} alt="save" width={20} height={20} />
-    </button>
-  );
+  return ( <button onClick={handleSave} disabled={isSubmitting}> <img src={`/assets/icons/${post.user_has_saved ? 'saved.svg' : 'save.svg'}`} alt="save" width={20} height={20} /> </button> );
 };
 
 export default Profile;
