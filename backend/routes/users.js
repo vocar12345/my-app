@@ -182,4 +182,40 @@ router.delete('/:id/follow', protect, async (req, res) => {
 });
 
 
+router.get('/:username/followers', async (req, res) => {
+  try {
+    const { username } = req.params;
+    const sql = `
+      SELECT u.User_account_id, u.User_username, u.User_name, u.User_image
+      FROM users u
+      JOIN follows f ON u.User_account_id = f.Followed_by_id
+      WHERE f.Following_id = (SELECT User_account_id FROM users WHERE User_username = ?)
+    `;
+    const [followers] = await db.query(sql, [username]);
+    res.status(200).json(followers);
+  } catch (error) {
+    console.error("Error fetching followers:", error);
+    res.status(500).json({ message: "Server error" });
+  }
+});
+
+
+// GET /api/users/:username/following - Get users a user is following
+router.get('/:username/following', async (req, res) => {
+  try {
+    const { username } = req.params;
+    const sql = `
+      SELECT u.User_account_id, u.User_username, u.User_name, u.User_image
+      FROM users u
+      JOIN follows f ON u.User_account_id = f.Following_id
+      WHERE f.Followed_by_id = (SELECT User_account_id FROM users WHERE User_username = ?)
+    `;
+    const [following] = await db.query(sql, [username]);
+    res.status(200).json(following);
+  } catch (error) {
+    console.error("Error fetching following list:", error);
+    res.status(500).json({ message: "Server error" });
+  }
+});
+
 export default router;
