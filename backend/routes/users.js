@@ -1,16 +1,33 @@
 import express from 'express';
 import db from '../database.js';
+import { protect } from '../middleware/authMiddleware.js';
+import multer from 'multer';
+import path from 'path';
 
 const router = express.Router();
 
-// GET /api/users/:username - Fetch a user's profile and their posts
+// --- Multer Configuration for profile pictures ---
+const storage = multer.diskStorage({
+  destination: './public/uploads/',
+  filename: function (req, file, cb) {
+    // Create a unique filename for the profile picture
+    // Note: req.user is available here because 'protect' middleware runs first
+    cb(null, 'profile-' + req.user.id + '-' + Date.now() + path.extname(file.originalname));
+  },
+});
+const upload = multer({ storage: storage }).single('image');
+
+
+// --- GET /api/users/:username ---
+// Fetches a user's profile and all of their posts.
 router.get('/:username', async (req, res) => {
   const { username } = req.params;
-  const currentUserId = req.query.userId; // We'll still need this for the like status
+  const currentUserId = req.query.userId; 
 
   try {
-    // First, get the user's profile information
-    const userSql = "SELECT User_account_id, User_username, User_name, User_bio, User_image_url FROM users WHERE User_username = ?";
+    // 1. Get the user's profile information
+    // Corrected to use User_image from your schema
+    const userSql = "SELECT User_account_id, User_username, User_name, User_bio, User_image FROM users WHERE User_username = ?";
     const [users] = await db.query(userSql, [username]);
 
     if (users.length === 0) {
@@ -18,7 +35,7 @@ router.get('/:username', async (req, res) => {
     }
     const userProfile = users[0];
 
-    // Next, get all posts made by that user
+    // 2. Get all posts made by that user
     const postsSql = `
       SELECT 
         p.Post_id, 
@@ -33,7 +50,7 @@ router.get('/:username', async (req, res) => {
     `;
     const [posts] = await db.query(postsSql, [currentUserId, userProfile.User_account_id]);
 
-    // Combine the profile and posts into a single response
+    // 3. Combine the profile and posts into a single response
     res.status(200).json({ profile: userProfile, posts: posts });
 
   } catch (error) {
@@ -41,5 +58,60 @@ router.get('/:username', async (req, res) => {
     res.status(500).json({ message: "Server error while fetching user profile" });
   }
 });
+
+
+// --- PUT /api/users/profile ---
+// Updates the profile of the currently logged-in user.
+router.put('/profile', protect, (req, res) => {
+  upload(req, res, async (err) => {
+    if (err) {
+      return res.status(500).json({ message: 'Error uploading file', error: err });
+    }
+
+    const { User_name, User_bio } = req.body;
+    const userId = req.user.id; // from protect middleware
+    let imageUrl = null;
+
+    if (req.file) {
+      imageUrl = `/uploads/${req.file.filename}`;
+    }
+
+    try {
+      // Build the query dynamically based on what the user provides
+      let sql = 'UPDATE users SET ';
+      const values = [];
+      if (User_name) {
+        sql += 'User_name = ?, ';
+        values.push(User_name);
+      }
+      if (User_bio) {
+        sql += 'User_bio = ?, ';
+        values.push(User_bio);
+      }
+      if (imageUrl) {
+        // Using User_image to match your database schema
+        sql += 'User_image = ?, ';
+        values.push(imageUrl);
+      }
+      
+      if (values.length === 0) {
+        return res.status(400).json({ message: "No fields to update provided." });
+      }
+
+      // Remove trailing comma and space
+      sql = sql.slice(0, -2);
+      sql += ' WHERE User_account_id = ?';
+      values.push(userId);
+
+      await db.query(sql, values);
+      res.status(200).json({ message: 'Profile updated successfully' });
+
+    } catch (dbError) {
+      console.error("Database error while updating profile:", dbError);
+      res.status(500).json({ message: 'Database error while updating profile' });
+    }
+  });
+});
+
 
 export default router;

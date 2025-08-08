@@ -9,26 +9,28 @@ interface Post {
   Post_caption: string;
   Post_imageurl: string;
   created_at: string;
-  User_username: string;
+  User_username: string; // This might be redundant on a profile page but good for consistency
   like_count: number;
   user_has_liked: boolean;
 }
 
+// This interface defines the user's profile data
 interface UserProfile {
   User_username: string;
   User_name: string;
   User_bio: string | null;
-  User_image_url: string | null;
+  User_image: string | null; // Corrected to match your database schema
 }
 
 const Profile = () => {
-  const { username } = useParams<{ username: string }>();
+  const { username } = useParams<{ username: string }>(); // Get username from URL
   const { user: currentUser } = useAuth();
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [posts, setPosts] = useState<Post[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  // This function updates the like state locally to provide instant UI feedback
   const handleLikeToggle = (postId: number, newLikedStatus: boolean, newLikeCount: number) => {
     setPosts(currentPosts =>
       currentPosts.map(p =>
@@ -57,18 +59,22 @@ const Profile = () => {
     fetchProfile();
   }, [username, currentUser]);
 
-  if (isLoading) return <div className="p-4">Loading profile...</div>;
-  if (error) return <div className="p-4 text-red-500">{error}</div>;
-  if (!profile) return <div className="p-4">User not found.</div>;
+  if (isLoading) return <div className="p-4 text-center">Loading profile...</div>;
+  if (error) return <div className="p-4 text-center text-red-500">{error}</div>;
+  if (!profile) return <div className="p-4 text-center">User not found.</div>;
 
   return (
     <div className="profile-container p-4 md:p-8 w-full">
-      <div className="profile-inner_container flex items-start gap-8">
-        <div className="w-28 h-28 lg:w-36 lg:h-36 rounded-full bg-gray-700 flex-shrink-0" />
+      <div className="profile-inner_container flex flex-col sm:flex-row items-center sm:items-start gap-8">
+        <img 
+          src={profile.User_image ? `http://localhost:5000${profile.User_image}` : '/assets/icons/profile-placeholder.svg'}
+          alt="profile"
+          className="w-28 h-28 lg:w-36 lg:h-36 rounded-full bg-gray-700 object-cover flex-shrink-0"
+        />
         <div className="flex flex-col">
-          <h1 className="text-2xl lg:text-3xl font-bold">{profile.User_username}</h1>
-          <p className="text-lg text-gray-400">@{profile.User_name}</p>
-          <p className="mt-4">{profile.User_bio || "No bio yet."}</p>
+          <h1 className="text-2xl lg:text-3xl font-bold text-center sm:text-left">{profile.User_username}</h1>
+          <p className="text-lg text-gray-400 text-center sm:text-left">@{profile.User_name}</p>
+          <p className="mt-4 text-center sm:text-left">{profile.User_bio || "No bio yet."}</p>
         </div>
       </div>
 
@@ -84,6 +90,7 @@ const Profile = () => {
             </div>
           </div>
         ))}
+         {posts.length === 0 && <p>This user hasn't posted anything yet.</p>}
       </div>
     </div>
   );
