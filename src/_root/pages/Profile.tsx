@@ -9,7 +9,7 @@ interface Post {
   Post_caption: string;
   Post_imageurl: string;
   created_at: string;
-  User_username: string; // This might be redundant on a profile page but good for consistency
+  User_username: string;
   like_count: number;
   user_has_liked: boolean;
 }
@@ -19,18 +19,17 @@ interface UserProfile {
   User_username: string;
   User_name: string;
   User_bio: string | null;
-  User_image: string | null; // Corrected to match your database schema
+  User_image: string | null;
 }
 
 const Profile = () => {
-  const { username } = useParams<{ username: string }>(); // Get username from URL
+  const { username } = useParams<{ username: string }>();
   const { user: currentUser } = useAuth();
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [posts, setPosts] = useState<Post[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // This function updates the like state locally to provide instant UI feedback
   const handleLikeToggle = (postId: number, newLikedStatus: boolean, newLikeCount: number) => {
     setPosts(currentPosts =>
       currentPosts.map(p =>
@@ -75,6 +74,13 @@ const Profile = () => {
           <h1 className="text-2xl lg:text-3xl font-bold text-center sm:text-left">{profile.User_username}</h1>
           <p className="text-lg text-gray-400 text-center sm:text-left">@{profile.User_name}</p>
           <p className="mt-4 text-center sm:text-left">{profile.User_bio || "No bio yet."}</p>
+          
+          {/* --- Edit Profile Button --- */}
+          {currentUser && currentUser.username === profile.User_username && (
+            <Link to="/edit-profile" className="mt-4 p-2 bg-gray-600 text-white rounded text-center w-32 hover:bg-gray-700">
+              Edit Profile
+            </Link>
+          )}
         </div>
       </div>
 

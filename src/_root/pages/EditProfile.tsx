@@ -6,7 +6,7 @@ import { useAuth } from '@/context/AuthContext';
 const EditProfile = () => {
   const { user: currentUser } = useAuth();
   const navigate = useNavigate();
-
+  
   const [formData, setFormData] = useState({
     User_name: '',
     User_bio: '',

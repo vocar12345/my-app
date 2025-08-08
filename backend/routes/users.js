@@ -26,7 +26,6 @@ router.get('/:username', async (req, res) => {
 
   try {
     // 1. Get the user's profile information
-    // Corrected to use User_image from your schema
     const userSql = "SELECT User_account_id, User_username, User_name, User_bio, User_image FROM users WHERE User_username = ?";
     const [users] = await db.query(userSql, [username]);
 
@@ -94,7 +93,7 @@ router.put('/profile', protect, (req, res) => {
         values.push(imageUrl);
       }
       
-      if (values.length === 0) {
+      if (values.length === 1) { // Only userId is in values if nothing was provided
         return res.status(400).json({ message: "No fields to update provided." });
       }
 
