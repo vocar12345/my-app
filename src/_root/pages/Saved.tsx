@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import axios from 'axios';
 
-// The interface matches the snake_case data from the backend
+// Interface for the saved post data
 interface SavedPost {
   post_id: number;
   post_caption: string;
@@ -23,7 +23,6 @@ const Saved = () => {
         setIsLoading(false);
         return;
       }
-
       try {
         const response = await axios.get('http://localhost:5000/api/users/saved', {
           headers: { 'Authorization': `Bearer ${token}` }
@@ -36,28 +35,14 @@ const Saved = () => {
         setIsLoading(false);
       }
     };
-
     fetchSavedPosts();
   }, []);
 
-  if (isLoading) {
-    return (
-      <div className="flex-center w-full h-full">
-        <p className="text-light-1">Loading saved posts...</p>
-      </div>
-    );
-  }
-  
-  if (error) {
-    return (
-      <div className="flex-center w-full h-full">
-        <p className="text-red-500">{error}</p>
-      </div>
-    );
-  }
+  if (isLoading) return <div className="p-4 text-center">Loading saved posts...</div>;
+  if (error) return <div className="p-4 text-center text-red-500">{error}</div>;
 
   return (
-    <div className="common-container p-4 md:p-8 w-full">
+    <div className="common-container p-4 md:p-8 w-full max-w-5xl">
       <div className="flex items-center gap-2 mb-8">
         <img src="/assets/icons/save.svg" alt="save" width={30} height={30} />
         <h2 className="h3-bold md:h2-bold text-left w-full">Saved Posts</h2>
@@ -66,8 +51,8 @@ const Saved = () => {
       {savedPosts.length > 0 ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-8">
           {savedPosts.map(post => (
-            // Using the correct snake_case property names here
-            <div key={post.post_id} className="bg-gray-800 p-4 rounded-xl">
+            // --- UPDATED: The entire card is now a link ---
+            <Link to={`/posts/${post.post_id}`} key={post.post_id} className="bg-gray-800 p-4 rounded-xl shadow-lg">
               <img 
                 src={`http://localhost:5000${post.post_imageurl}`} 
                 alt="post" 
@@ -75,7 +60,7 @@ const Saved = () => {
               />
               <p className="mt-2 truncate">{post.post_caption}</p>
               <p className="text-sm text-gray-400">by {post.user_username}</p>
-            </div>
+            </Link>
           ))}
         </div>
       ) : (

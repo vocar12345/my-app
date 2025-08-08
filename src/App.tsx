@@ -7,7 +7,7 @@ import SignUpForm from './_auth/forms/SignUpForm';
 
 import RootLayout from './_root/RootLayout';
 // Import the new Saved component
-import { Home, CreatePost, Profile, EditProfile, Saved, FollowList } from './_root/pages'; 
+import { Home, CreatePost, Profile, EditProfile, Saved, FollowList, PostDetails } from './_root/pages'; 
 
 const App = () => {
   const { isAuthenticated } = useAuth();
@@ -31,6 +31,7 @@ const App = () => {
             <Route path="/saved" element={<Saved />} />
             <Route path="/profile/:username/followers" element={<FollowList />} />
             <Route path="/profile/:username/following" element={<FollowList />} />
+            <Route path="/posts/:id" element={<PostDetails />} />
           </Route>
         ) : (
           <Route path="*" element={<Navigate to="/sign-in" replace />} />

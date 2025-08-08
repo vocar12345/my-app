@@ -10,6 +10,7 @@ interface Post {
   Post_imageurl: string;
   created_at: string;
   User_username: string;
+  User_image: string | null;
   like_count: number;
   user_has_liked: boolean;
   user_has_saved: boolean;
@@ -59,7 +60,6 @@ const Home = () => {
   if (error) return <div className="text-red-500">{error}</div>;
 
   return (
-    // --- AESTHETIC UPDATE: Wider, centered container for the feed ---
     <div className='home-container w-full max-w-screen-md p-4 md:p-8'>
       <h2 className="h3-bold md:h2-bold text-left w-full mb-8">Home Feed</h2>
       <div className="flex flex-col gap-9">
@@ -69,7 +69,11 @@ const Home = () => {
           posts.map((post) => (
             <div key={post.Post_id} className="post-card bg-gray-800 p-5 rounded-xl shadow-lg">
               <div className="flex items-center gap-3">
-                <div className="w-12 h-12 rounded-full bg-gray-600"></div>
+                <img 
+                  src={post.User_image ? `http://localhost:5000${post.User_image}` : '/assets/icons/profile-placeholder.svg'}
+                  alt="creator"
+                  className="w-12 h-12 rounded-full object-cover"
+                />
                 <Link to={`/profile/${post.User_username}`} className="font-semibold hover:underline">
                   {post.User_username}
                 </Link>
@@ -77,11 +81,14 @@ const Home = () => {
               <div className="py-5">
                 <p>{post.Post_caption}</p>
               </div>
-              <img
-                src={`http://localhost:5000${post.Post_imageurl}`}
-                alt="post image"
-                className="post-card_img rounded-lg w-full object-cover"
-              />
+              {/* --- UPDATED: Image is now a link --- */}
+              <Link to={`/posts/${post.Post_id}`}>
+                <img
+                  src={`http://localhost:5000${post.Post_imageurl}`}
+                  alt="post image"
+                  className="post-card_img rounded-lg w-full object-cover cursor-pointer"
+                />
+              </Link>
               <div className="flex justify-between items-center mt-4">
                 <div className="flex items-center gap-2">
                   <LikeButton post={post} onLikeToggle={handleLikeToggle} />
@@ -98,8 +105,6 @@ const Home = () => {
 };
 
 // --- Child Components ---
-// (LikeButton and SaveButton code remains the same)
-
 interface LikeButtonProps { post: Post; onLikeToggle: (postId: number, newLikedStatus: boolean, newLikeCount: number) => void; }
 const LikeButton = ({ post, onLikeToggle }: LikeButtonProps) => {
   const [isSubmitting, setIsSubmitting] = useState(false);

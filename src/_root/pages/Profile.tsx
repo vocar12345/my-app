@@ -15,7 +15,7 @@ interface Post {
   user_has_saved: boolean;
 }
 
-// Interface for User Profile data, including follow info
+// Interface for User Profile data
 interface UserProfile {
   User_account_id: number;
   User_username: string;
@@ -89,7 +89,6 @@ const Profile = () => {
   if (!profile) return <div className="p-4 text-center">User not found.</div>;
 
   return (
-    // --- AESTHETIC UPDATE: Centered container with max-width ---
     <div className="profile-container w-full max-w-5xl p-4 md:p-8">
       <div className="profile-inner_container flex flex-col sm:flex-row items-center sm:items-start gap-8">
         <img 
@@ -124,13 +123,15 @@ const Profile = () => {
       <h3 className="font-bold text-xl w-full my-10 border-t border-gray-600 pt-6">Posts</h3>
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-8">
         {posts.map((post) => (
-          <div key={post.Post_id} className="relative group bg-gray-800 p-4 rounded-xl shadow-lg">
-            <img src={`http://localhost:5000${post.Post_imageurl}`} alt="post" className="w-full h-48 object-cover rounded-lg" />
+          <div key={post.Post_id} className="relative group bg-gray-800 p-4 rounded-xl shadow-lg flex flex-col gap-2">
+            <Link to={`/posts/${post.Post_id}`}>
+              <img src={`http://localhost:5000${post.Post_imageurl}`} alt="post" className="w-full h-48 object-cover rounded-lg" />
+            </Link>
             <p className="text-white mt-2 truncate">{post.Post_caption}</p>
-            <div className="flex justify-between items-center mt-2">
+            <div className="flex justify-between items-center mt-auto">
               <div className="flex items-center gap-2">
                 <LikeButton post={post} onLikeToggle={handleLikeToggle} />
-                <span>{post.like_count} {post.like_count === 1 ? 'like' : 'likes'}</span>
+                <span>{post.like_count} likes</span>
               </div>
               <SaveButton post={post} onSaveToggle={handleSaveToggle} />
             </div>
@@ -143,7 +144,6 @@ const Profile = () => {
 };
 
 // --- Child Components ---
-
 interface FollowButtonProps { profile: UserProfile; onFollowToggle: (newFollowStatus: boolean) => void; }
 const FollowButton = ({ profile, onFollowToggle }: FollowButtonProps) => {
   const [isSubmitting, setIsSubmitting] = useState(false);

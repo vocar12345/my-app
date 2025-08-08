@@ -1,4 +1,3 @@
-
 import express from 'express';
 import db from '../database.js';
 import { protect } from '../middleware/authMiddleware.js';
@@ -18,12 +17,9 @@ const upload = multer({ storage: storage }).single('image');
 
 
 // --- GET /api/users/saved ---
-// Fetches all posts saved by the logged-in user.
 router.get('/saved', protect, async (req, res) => {
     try {
         const userId = req.user.id;
-        // THIS QUERY IS THE FIX: It uses `AS` to rename the columns
-        // from `Post_id` to `post_id`, which is what the frontend expects.
         const sql = `
             SELECT 
                 p.Post_id AS post_id,
@@ -46,29 +42,21 @@ router.get('/saved', protect, async (req, res) => {
 
 
 // --- GET /api/users/:username ---
-// Fetches a user's profile and all of their posts.
 router.get('/:username', async (req, res) => {
   const { username } = req.params;
   const currentUserId = req.query.userId; 
 
   try {
-    // UPDATED SQL QUERY: This now includes follower/following counts and an is_following check
-    const userSql = `
-      SELECT 
-        u.User_account_id, u.User_username, u.User_name, u.User_bio, u.User_image,
-        (SELECT COUNT(*) FROM follows WHERE Following_id = u.User_account_id) AS follower_count,
-        (SELECT COUNT(*) FROM follows WHERE Followed_by_id = u.User_account_id) AS following_count,
-        (SELECT COUNT(*) FROM follows WHERE Following_id = u.User_account_id AND Followed_by_id = ?) > 0 AS is_following
-      FROM users AS u 
-      WHERE u.User_username = ?
-    `;
-    const [users] = await db.query(userSql, [currentUserId, username]);
+    const userSql = "SELECT User_account_id, User_username, User_name, User_bio, User_image FROM users WHERE User_username = ?";
+    const [users] = await db.query(userSql, [username]);
 
     if (users.length === 0) {
       return res.status(404).json({ message: 'User not found' });
     }
     const userProfile = users[0];
 
+    // --- CORRECTED SQL QUERY FOR POSTS ---
+    // This query now joins the users table to include the username in each post object.
     const postsSql = `
       SELECT 
         p.Post_id, p.Post_caption, p.Post_imageurl, p.created_at,
@@ -93,7 +81,6 @@ router.get('/:username', async (req, res) => {
 
 
 // --- PUT /api/users/profile ---
-// Updates the profile of the currently logged-in user.
 router.put('/profile', protect, (req, res) => {
   upload(req, res, async (err) => {
     if (err) {
@@ -135,87 +122,5 @@ router.put('/profile', protect, (req, res) => {
   });
 });
 
-
-// Add these two routes to the bottom of backend/routes/users.js
-
-// POST /api/users/:id/follow - Follow a user
-router.post('/:id/follow', protect, async (req, res) => {
-  const userToFollowId = req.params.id;
-  const currentUserId = req.user.id; // from protect middleware
-
-  // Prevent user from following themselves
-  if (userToFollowId == currentUserId) {
-    return res.status(400).json({ message: "You cannot follow yourself." });
-  }
-
-  try {
-    const sql = "INSERT INTO follows (Followed_by_id, Following_id) VALUES (?, ?)";
-    await db.query(sql, [currentUserId, userToFollowId]);
-    res.status(200).json({ message: 'User followed successfully' });
-  } catch (error) {
-    if (error.code === 'ER_DUP_ENTRY') {
-      return res.status(409).json({ message: 'You are already following this user' });
-    }
-    console.error("Error following user:", error);
-    res.status(500).json({ message: 'Server error while following user' });
-  }
-});
-
-
-// DELETE /api/users/:id/follow - Unfollow a user
-router.delete('/:id/follow', protect, async (req, res) => {
-  const userToUnfollowId = req.params.id;
-  const currentUserId = req.user.id;
-
-  try {
-    const sql = "DELETE FROM follows WHERE Followed_by_id = ? AND Following_id = ?";
-    const [result] = await db.query(sql, [currentUserId, userToUnfollowId]);
-
-    if (result.affectedRows === 0) {
-      return res.status(404).json({ message: "You are not following this user." });
-    }
-    res.status(200).json({ message: 'User unfollowed successfully' });
-  } catch (error) {
-    console.error("Error unfollowing user:", error);
-    res.status(500).json({ message: 'Server error while unfollowing user' });
-  }
-});
-
-
-router.get('/:username/followers', async (req, res) => {
-  try {
-    const { username } = req.params;
-    const sql = `
-      SELECT u.User_account_id, u.User_username, u.User_name, u.User_image
-      FROM users u
-      JOIN follows f ON u.User_account_id = f.Followed_by_id
-      WHERE f.Following_id = (SELECT User_account_id FROM users WHERE User_username = ?)
-    `;
-    const [followers] = await db.query(sql, [username]);
-    res.status(200).json(followers);
-  } catch (error) {
-    console.error("Error fetching followers:", error);
-    res.status(500).json({ message: "Server error" });
-  }
-});
-
-
-// GET /api/users/:username/following - Get users a user is following
-router.get('/:username/following', async (req, res) => {
-  try {
-    const { username } = req.params;
-    const sql = `
-      SELECT u.User_account_id, u.User_username, u.User_name, u.User_image
-      FROM users u
-      JOIN follows f ON u.User_account_id = f.Following_id
-      WHERE f.Followed_by_id = (SELECT User_account_id FROM users WHERE User_username = ?)
-    `;
-    const [following] = await db.query(sql, [username]);
-    res.status(200).json(following);
-  } catch (error) {
-    console.error("Error fetching following list:", error);
-    res.status(500).json({ message: "Server error" });
-  }
-});
 
 export default router;
