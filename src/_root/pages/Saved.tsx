@@ -1,12 +1,13 @@
 import { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import axios from 'axios';
 
-// Define a simple interface for the data we expect for a saved post
+// The interface matches the snake_case data from the backend
 interface SavedPost {
-  Post_id: number;
-  Post_caption: string;
-  Post_imageurl: string;
-  User_username: string;
+  post_id: number;
+  post_caption: string;
+  post_imageurl: string;
+  user_username: string;
 }
 
 const Saved = () => {
@@ -24,7 +25,6 @@ const Saved = () => {
       }
 
       try {
-        // CORRECTED: This now uses the simpler /api/users/saved route
         const response = await axios.get('http://localhost:5000/api/users/saved', {
           headers: { 'Authorization': `Bearer ${token}` }
         });
@@ -41,37 +41,51 @@ const Saved = () => {
   }, []);
 
   if (isLoading) {
-    return <div className="p-4 text-center">Loading saved posts...</div>;
+    return (
+      <div className="flex-center w-full h-full">
+        <p className="text-light-1">Loading saved posts...</p>
+      </div>
+    );
   }
   
   if (error) {
-    return <div className="p-4 text-center text-red-500">{error}</div>;
+    return (
+      <div className="flex-center w-full h-full">
+        <p className="text-red-500">{error}</p>
+      </div>
+    );
   }
 
   return (
-    <div className="common-container p-4 md:p-8">
-      <div className="flex items-center gap-2">
-        <img src="/assets/icons/save.svg" alt="save" width={24} height={24} />
+    <div className="common-container p-4 md:p-8 w-full">
+      <div className="flex items-center gap-2 mb-8">
+        <img src="/assets/icons/save.svg" alt="save" width={30} height={30} />
         <h2 className="h3-bold md:h2-bold text-left w-full">Saved Posts</h2>
       </div>
       
-      <div className="mt-8 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-8">
-        {savedPosts.length > 0 ? (
-          savedPosts.map(post => (
-            <div key={post.Post_id} className="bg-gray-800 p-4 rounded-xl">
+      {savedPosts.length > 0 ? (
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-8">
+          {savedPosts.map(post => (
+            // Using the correct snake_case property names here
+            <div key={post.post_id} className="bg-gray-800 p-4 rounded-xl">
               <img 
-                src={`http://localhost:5000${post.Post_imageurl}`} 
+                src={`http://localhost:5000${post.post_imageurl}`} 
                 alt="post" 
                 className="w-full h-48 object-cover rounded-lg" 
               />
-              <p className="mt-2 truncate">{post.Post_caption}</p>
-              <p className="text-sm text-gray-400">by {post.User_username}</p>
+              <p className="mt-2 truncate">{post.post_caption}</p>
+              <p className="text-sm text-gray-400">by {post.user_username}</p>
             </div>
-          ))
-        ) : (
+          ))}
+        </div>
+      ) : (
+        <div className="text-center text-gray-400">
           <p>You haven't saved any posts yet.</p>
-        )}
-      </div>
+          <Link to="/" className="text-primary-500 hover:underline mt-2 inline-block">
+            Find some posts to save!
+          </Link>
+        </div>
+      )}
     </div>
   );
 };
