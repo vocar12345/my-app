@@ -22,36 +22,27 @@ const upload = multer({ storage: storage }).single('image');
 // Fetches a user's profile and all of their posts.
 router.get('/:username', async (req, res) => {
   const { username } = req.params;
-  const currentUserId = req.query.userId; 
-
+  const currentUserId = req.query.userId;
   try {
-    // 1. Get the user's profile information
     const userSql = "SELECT User_account_id, User_username, User_name, User_bio, User_image FROM users WHERE User_username = ?";
     const [users] = await db.query(userSql, [username]);
-
     if (users.length === 0) {
       return res.status(404).json({ message: 'User not found' });
     }
     const userProfile = users[0];
-
-    // 2. Get all posts made by that user
     const postsSql = `
       SELECT 
-        p.Post_id, 
-        p.Post_caption, 
-        p.Post_imageurl, 
-        p.created_at,
+        p.Post_id, p.Post_caption, p.Post_imageurl, p.created_at,
         (SELECT COUNT(*) FROM likes WHERE Post_id = p.Post_id) AS like_count,
-        (SELECT COUNT(*) FROM likes WHERE Post_id = p.Post_id AND User_account_id = ?) > 0 AS user_has_liked
+        (SELECT COUNT(*) FROM saves WHERE Post_id = p.Post_id) AS save_count,
+        (SELECT COUNT(*) FROM likes WHERE Post_id = p.Post_id AND User_account_id = ?) > 0 AS user_has_liked,
+        (SELECT COUNT(*) FROM saves WHERE Post_id = p.Post_id AND User_account_id = ?) > 0 AS user_has_saved
       FROM posts AS p
       WHERE p.User_account_id = ?
       ORDER BY p.created_at DESC
     `;
-    const [posts] = await db.query(postsSql, [currentUserId, userProfile.User_account_id]);
-
-    // 3. Combine the profile and posts into a single response
+    const [posts] = await db.query(postsSql, [currentUserId, currentUserId, userProfile.User_account_id]);
     res.status(200).json({ profile: userProfile, posts: posts });
-
   } catch (error) {
     console.error("Error fetching user profile:", error);
     res.status(500).json({ message: "Server error while fetching user profile" });

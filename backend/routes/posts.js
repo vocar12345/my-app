@@ -46,29 +46,22 @@ router.post('/', protect, (req, res) => {
 });
 
 router.get('/', async (req, res) => {
-  // We get the current user's ID from a query parameter
   const currentUserId = req.query.userId;
-
   try {
-    // This is a more complex query that uses subqueries to get the like count
-    // and to check if the current user has liked the post.
     const sql = `
       SELECT 
-        p.Post_id, 
-        p.Post_caption, 
-        p.Post_imageurl, 
-        p.created_at,
+        p.Post_id, p.Post_caption, p.Post_imageurl, p.created_at,
         u.User_username,
         (SELECT COUNT(*) FROM likes WHERE Post_id = p.Post_id) AS like_count,
-        (SELECT COUNT(*) FROM likes WHERE Post_id = p.Post_id AND User_account_id = ?) > 0 AS user_has_liked
+        (SELECT COUNT(*) FROM saves WHERE Post_id = p.Post_id) AS save_count,
+        (SELECT COUNT(*) FROM likes WHERE Post_id = p.Post_id AND User_account_id = ?) > 0 AS user_has_liked,
+        (SELECT COUNT(*) FROM saves WHERE Post_id = p.Post_id AND User_account_id = ?) > 0 AS user_has_saved
       FROM posts AS p
       JOIN users AS u ON p.User_account_id = u.User_account_id
       ORDER BY p.created_at DESC
     `;
-
-    const [posts] = await db.query(sql, [currentUserId]);
+    const [posts] = await db.query(sql, [currentUserId, currentUserId]);
     res.status(200).json(posts);
-
   } catch (error) {
     console.error("Error fetching posts:", error);
     res.status(500).json({ message: "Server error while fetching posts" });
@@ -110,6 +103,43 @@ router.delete('/:id/like', protect, async (req, res) => {
   } catch (error) {
     console.error("Error unliking post:", error);
     res.status(500).json({ message: 'Server error while unliking post' });
+  }
+});
+
+// POST /api/posts/:id/save - Save a post
+router.post('/:id/save', protect, async (req, res) => {
+  const postId = req.params.id;
+  const userId = req.user.id;
+
+  try {
+    const sql = "INSERT INTO saves (User_account_id, Post_id) VALUES (?, ?)";
+    await db.query(sql, [userId, postId]);
+    res.status(200).json({ message: 'Post saved successfully' });
+  } catch (error) {
+    if (error.code === 'ER_DUP_ENTRY') {
+      return res.status(409).json({ message: 'You have already saved this post' });
+    }
+    console.error("Error saving post:", error);
+    res.status(500).json({ message: 'Server error while saving post' });
+  }
+});
+
+// DELETE /api/posts/:id/save - Unsave a post
+router.delete('/:id/save', protect, async (req, res) => {
+  const postId = req.params.id;
+  const userId = req.user.id;
+
+  try {
+    const sql = "DELETE FROM saves WHERE User_account_id = ? AND Post_id = ?";
+    const [result] = await db.query(sql, [userId, postId]);
+
+    if (result.affectedRows === 0) {
+      return res.status(404).json({ message: "Saved post not found" });
+    }
+    res.status(200).json({ message: 'Post unsaved successfully' });
+  } catch (error) {
+    console.error("Error unsaving post:", error);
+    res.status(500).json({ message: 'Server error while unsaving post' });
   }
 });
 
