@@ -10,26 +10,53 @@ const router = express.Router();
 const storage = multer.diskStorage({
   destination: './public/uploads/',
   filename: function (req, file, cb) {
-    // Create a unique filename for the profile picture
-    // Note: req.user is available here because 'protect' middleware runs first
     cb(null, 'profile-' + req.user.id + '-' + Date.now() + path.extname(file.originalname));
   },
 });
 const upload = multer({ storage: storage }).single('image');
 
 
+// --- GET /api/users/saved ---
+// Fetches all posts saved by the currently logged-in user.
+router.get('/saved', protect, async (req, res) => {
+    try {
+        const userId = req.user.id; // from protect middleware
+        const sql = `
+            SELECT 
+                p.Post_id,
+                p.Post_caption,
+                p.Post_imageurl,
+                u.User_username 
+            FROM posts AS p
+            JOIN saves AS s ON p.Post_id = s.Post_id
+            JOIN users AS u ON p.User_account_id = u.User_account_id
+            WHERE s.User_account_id = ?
+            ORDER BY s.created_at DESC
+        `;
+        const [posts] = await db.query(sql, [userId]);
+        res.status(200).json(posts);
+    } catch (error) {
+        console.error("Error fetching saved posts:", error);
+        res.status(500).json({ message: "Server error while fetching saved posts" });
+    }
+});
+
+
 // --- GET /api/users/:username ---
 // Fetches a user's profile and all of their posts.
 router.get('/:username', async (req, res) => {
   const { username } = req.params;
-  const currentUserId = req.query.userId;
+  const currentUserId = req.query.userId; 
+
   try {
     const userSql = "SELECT User_account_id, User_username, User_name, User_bio, User_image FROM users WHERE User_username = ?";
     const [users] = await db.query(userSql, [username]);
+
     if (users.length === 0) {
       return res.status(404).json({ message: 'User not found' });
     }
     const userProfile = users[0];
+
     const postsSql = `
       SELECT 
         p.Post_id, p.Post_caption, p.Post_imageurl, p.created_at,
@@ -43,6 +70,7 @@ router.get('/:username', async (req, res) => {
     `;
     const [posts] = await db.query(postsSql, [currentUserId, currentUserId, userProfile.User_account_id]);
     res.status(200).json({ profile: userProfile, posts: posts });
+
   } catch (error) {
     console.error("Error fetching user profile:", error);
     res.status(500).json({ message: "Server error while fetching user profile" });
@@ -57,17 +85,13 @@ router.put('/profile', protect, (req, res) => {
     if (err) {
       return res.status(500).json({ message: 'Error uploading file', error: err });
     }
-
     const { User_name, User_bio } = req.body;
-    const userId = req.user.id; // from protect middleware
+    const userId = req.user.id;
     let imageUrl = null;
-
     if (req.file) {
       imageUrl = `/uploads/${req.file.filename}`;
     }
-
     try {
-      // Build the query dynamically based on what the user provides
       let sql = 'UPDATE users SET ';
       const values = [];
       if (User_name) {
@@ -79,50 +103,22 @@ router.put('/profile', protect, (req, res) => {
         values.push(User_bio);
       }
       if (imageUrl) {
-        // Using User_image to match your database schema
         sql += 'User_image = ?, ';
         values.push(imageUrl);
       }
-      
-      if (values.length === 1) { // Only userId is in values if nothing was provided
+      if (values.length === 0) {
         return res.status(400).json({ message: "No fields to update provided." });
       }
-
-      // Remove trailing comma and space
       sql = sql.slice(0, -2);
       sql += ' WHERE User_account_id = ?';
       values.push(userId);
-
       await db.query(sql, values);
       res.status(200).json({ message: 'Profile updated successfully' });
-
     } catch (dbError) {
       console.error("Database error while updating profile:", dbError);
       res.status(500).json({ message: 'Database error while updating profile' });
     }
   });
-});
-
-
-// --- GET /api/users/profile/saved ---
-// Fetches all posts saved by the currently logged-in user.
-router.get('/profile/saved', protect, async (req, res) => {
-    try {
-        const userId = req.user.id;
-        const sql = `
-            SELECT p.*, u.User_username 
-            FROM posts p
-            JOIN saves s ON p.Post_id = s.Post_id
-            JOIN users u ON p.User_account_id = u.User_account_id
-            WHERE s.User_account_id = ?
-            ORDER BY s.created_at DESC
-        `;
-        const [posts] = await db.query(sql, [userId]);
-        res.status(200).json(posts);
-    } catch (error) {
-        console.error("Error fetching saved posts:", error);
-        res.status(500).json({ message: "Server error" });
-    }
 });
 
 
