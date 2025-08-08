@@ -104,4 +104,26 @@ router.put('/profile', protect, (req, res) => {
 });
 
 
+// --- GET /api/users/profile/saved ---
+// Fetches all posts saved by the currently logged-in user.
+router.get('/profile/saved', protect, async (req, res) => {
+    try {
+        const userId = req.user.id;
+        const sql = `
+            SELECT p.*, u.User_username 
+            FROM posts p
+            JOIN saves s ON p.Post_id = s.Post_id
+            JOIN users u ON p.User_account_id = u.User_account_id
+            WHERE s.User_account_id = ?
+            ORDER BY s.created_at DESC
+        `;
+        const [posts] = await db.query(sql, [userId]);
+        res.status(200).json(posts);
+    } catch (error) {
+        console.error("Error fetching saved posts:", error);
+        res.status(500).json({ message: "Server error" });
+    }
+});
+
+
 export default router;

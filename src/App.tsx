@@ -6,8 +6,8 @@ import SignInForm from './_auth/forms/SignInForm';
 import SignUpForm from './_auth/forms/SignUpForm';
 
 import RootLayout from './_root/RootLayout';
-// Make sure to import EditProfile here
-import { Home, CreatePost, Profile, EditProfile } from './_root/pages'; 
+// Import the new Saved component
+import { Home, CreatePost, Profile, EditProfile, Saved } from './_root/pages'; 
 
 const App = () => {
   const { isAuthenticated } = useAuth();
@@ -27,8 +27,9 @@ const App = () => {
             <Route index element={<Home />} />
             <Route path="/create-post" element={<CreatePost />} />
             <Route path="/profile/:username" element={<Profile />} />
-            {/* --- THIS IS THE MISSING ROUTE --- */}
             <Route path="/edit-profile" element={<EditProfile />} />
+            {/* --- ADD THIS NEW ROUTE --- */}
+            <Route path="/saved" element={<Saved />} />
           </Route>
         ) : (
           <Route path="*" element={<Navigate to="/sign-in" replace />} />
@@ -39,5 +40,4 @@ const App = () => {
 };
 
 export default App;
-
 

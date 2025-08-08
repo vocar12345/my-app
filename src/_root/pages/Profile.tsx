@@ -3,7 +3,7 @@ import { useParams, Link } from 'react-router-dom';
 import axios from 'axios';
 import { useAuth } from '@/context/AuthContext';
 
-// This Post interface should match the one in Home.tsx
+// Interface for the Post data
 interface Post {
   Post_id: number;
   Post_caption: string;
@@ -12,9 +12,10 @@ interface Post {
   User_username: string;
   like_count: number;
   user_has_liked: boolean;
+  user_has_saved: boolean;
 }
 
-// This interface defines the user's profile data
+// Interface for the user's profile data
 interface UserProfile {
   User_username: string;
   User_name: string;
@@ -36,6 +37,14 @@ const Profile = () => {
         p.Post_id === postId
           ? { ...p, user_has_liked: newLikedStatus, like_count: newLikeCount }
           : p
+      )
+    );
+  };
+
+  const handleSaveToggle = (postId: number, newSavedStatus: boolean) => {
+    setPosts(currentPosts =>
+      currentPosts.map(p =>
+        p.Post_id === postId ? { ...p, user_has_saved: newSavedStatus } : p
       )
     );
   };
@@ -74,8 +83,6 @@ const Profile = () => {
           <h1 className="text-2xl lg:text-3xl font-bold text-center sm:text-left">{profile.User_username}</h1>
           <p className="text-lg text-gray-400 text-center sm:text-left">@{profile.User_name}</p>
           <p className="mt-4 text-center sm:text-left">{profile.User_bio || "No bio yet."}</p>
-          
-          {/* --- Edit Profile Button --- */}
           {currentUser && currentUser.username === profile.User_username && (
             <Link to="/edit-profile" className="mt-4 p-2 bg-gray-600 text-white rounded text-center w-32 hover:bg-gray-700">
               Edit Profile
@@ -90,9 +97,12 @@ const Profile = () => {
           <div key={post.Post_id} className="relative group bg-gray-800 p-4 rounded-xl">
             <img src={`http://localhost:5000${post.Post_imageurl}`} alt="post" className="w-full h-48 object-cover rounded-lg" />
             <p className="text-white mt-2 truncate">{post.Post_caption}</p>
-            <div className="flex items-center gap-2 mt-2">
-              <LikeButton post={post} onLikeToggle={handleLikeToggle} />
-              <span>{post.like_count} {post.like_count === 1 ? 'like' : 'likes'}</span>
+            <div className="flex justify-between items-center mt-2">
+              <div className="flex items-center gap-2">
+                <LikeButton post={post} onLikeToggle={handleLikeToggle} />
+                <span>{post.like_count} {post.like_count === 1 ? 'like' : 'likes'}</span>
+              </div>
+              <SaveButton post={post} onSaveToggle={handleSaveToggle} />
             </div>
           </div>
         ))}
@@ -102,46 +112,60 @@ const Profile = () => {
   );
 };
 
-// --- LikeButton Component (Duplicated for simplicity) ---
+// --- LikeButton Component ---
 interface LikeButtonProps {
   post: Post;
   onLikeToggle: (postId: number, newLikedStatus: boolean, newLikeCount: number) => void;
 }
-
 const LikeButton = ({ post, onLikeToggle }: LikeButtonProps) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const token = localStorage.getItem('token');
-
   const handleLike = async () => {
     if (isSubmitting) return;
     setIsSubmitting(true);
     try {
       if (post.user_has_liked) {
-        await axios.delete(`http://localhost:5000/api/posts/${post.Post_id}/like`, {
-          headers: { 'Authorization': `Bearer ${token}` }
-        });
+        await axios.delete(`http://localhost:5000/api/posts/${post.Post_id}/like`, { headers: { 'Authorization': `Bearer ${token}` } });
         onLikeToggle(post.Post_id, false, post.like_count - 1);
       } else {
-        await axios.post(`http://localhost:5000/api/posts/${post.Post_id}/like`, {}, {
-          headers: { 'Authorization': `Bearer ${token}` }
-        });
+        await axios.post(`http://localhost:5000/api/posts/${post.Post_id}/like`, {}, { headers: { 'Authorization': `Bearer ${token}` } });
         onLikeToggle(post.Post_id, true, post.like_count + 1);
       }
-    } catch (error) {
-      console.error("Failed to update like status", error);
-    } finally {
-      setIsSubmitting(false);
-    }
+    } catch (error) { console.error("Failed to update like status", error); }
+    finally { setIsSubmitting(false); }
   };
-
   return (
     <button onClick={handleLike} disabled={isSubmitting}>
-      <img
-        src={`/assets/icons/${post.user_has_liked ? 'liked.svg' : 'like.svg'}`}
-        alt="like"
-        width={20}
-        height={20}
-      />
+      <img src={`/assets/icons/${post.user_has_liked ? 'liked.svg' : 'like.svg'}`} alt="like" width={20} height={20} />
+    </button>
+  );
+};
+
+// --- SaveButton Component ---
+interface SaveButtonProps {
+  post: Post;
+  onSaveToggle: (postId: number, newSavedStatus: boolean) => void;
+}
+const SaveButton = ({ post, onSaveToggle }: SaveButtonProps) => {
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const token = localStorage.getItem('token');
+  const handleSave = async () => {
+    if (isSubmitting) return;
+    setIsSubmitting(true);
+    try {
+      if (post.user_has_saved) {
+        await axios.delete(`http://localhost:5000/api/posts/${post.Post_id}/save`, { headers: { 'Authorization': `Bearer ${token}` } });
+        onSaveToggle(post.Post_id, false);
+      } else {
+        await axios.post(`http://localhost:5000/api/posts/${post.Post_id}/save`, {}, { headers: { 'Authorization': `Bearer ${token}` } });
+        onSaveToggle(post.Post_id, true);
+      }
+    } catch (error) { console.error("Failed to update save status", error); }
+    finally { setIsSubmitting(false); }
+  };
+  return (
+    <button onClick={handleSave} disabled={isSubmitting}>
+      <img src={`/assets/icons/${post.user_has_saved ? 'saved.svg' : 'save.svg'}`} alt="save" width={20} height={20} />
     </button>
   );
 };

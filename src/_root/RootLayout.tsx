@@ -11,6 +11,8 @@ const RootLayout = () => {
         <div>
           <Link to="/" className="text-xl font-bold">PawsGram</Link>
           <Link to="/create-post" className="ml-4">Create Post</Link>
+          {/* --- saved posts link --- */}
+          <Link to="/saved" className="ml-4">Saved Posts</Link>
         </div>
         <div>
           <span className="mr-4">Welcome, {user?.username}!</span>
@@ -20,7 +22,7 @@ const RootLayout = () => {
         </div>
       </header>
 
-      {/* This will render the actual page content (Home, CreatePost, etc.) */}
+      {/* This will render the actual page content */}
       <main className="flex flex-1 h-full p-4">
         <Outlet />
       </main>
