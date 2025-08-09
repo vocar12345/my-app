@@ -24,8 +24,10 @@ const FollowList = () => {
   useEffect(() => {
     const fetchList = async () => {
       if (!username) return;
+      setIsLoading(true);
       try {
-        const response = await axios.get(`http://localhost:5000/api/users/${username}/${listType}`);
+        // The API call now uses a query parameter, which is more robust
+        const response = await axios.get(`http://localhost:5000/api/users/${listType}?username=${username}`);
         setUsers(response.data);
       } catch (err) {
         setError(`Failed to fetch ${listType}.`);
@@ -41,11 +43,11 @@ const FollowList = () => {
   if (error) return <div className="p-4 text-center text-red-500">{error}</div>;
 
   return (
-    <div className="common-container p-4 md:p-8">
-      <h2 className="h3-bold md:h2-bold text-left w-full capitalize">
+    <div className="common-container p-4 md:p-8 w-full max-w-2xl">
+      <h2 className="h3-bold md:h2-bold text-left w-full capitalize mb-8">
         {listType}
       </h2>
-      <div className="mt-8 flex flex-col gap-6">
+      <div className="flex flex-col gap-6">
         {users.length > 0 ? (
           users.map((user) => (
             <Link to={`/profile/${user.User_username}`} key={user.User_account_id} className="flex items-center gap-4 p-2 rounded-lg hover:bg-gray-800">
@@ -61,7 +63,7 @@ const FollowList = () => {
             </Link>
           ))
         ) : (
-          <p>No users to display.</p>
+          <p className="text-gray-400">No users to display.</p>
         )}
       </div>
     </div>

@@ -15,7 +15,7 @@ interface Post {
   user_has_saved: boolean;
 }
 
-// Interface for User Profile data
+// Interface for User Profile data, including follow info
 interface UserProfile {
   User_account_id: number;
   User_username: string;
