@@ -7,11 +7,11 @@ interface User {
   username: string;
 }
 
-// This is the interface that needs to be updated
+
 interface AuthContextType {
   isAuthenticated: boolean;
   user: User | null;
-  login: (token: string) => void; // Add the login function type here
+  login: (token: string) => void; 
   logout: () => void;
 }
 

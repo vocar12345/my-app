@@ -26,7 +26,7 @@ router.post('/register', async (req, res) => {
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(password, salt);
 
-    // This query uses your exact column names
+    // query to insert a new user into the database
     const sql = "INSERT INTO users (User_name, User_username, User_email, password) VALUES (?, ?, ?, ?)";
     const values = [name, username, email, hashedPassword];
     
@@ -35,7 +35,7 @@ router.post('/register', async (req, res) => {
     res.status(201).json({ message: "User registered successfully!" });
 
   } catch (error) {
-    // This will log the specific database error to your backend terminal
+    // logs data base errors to the terminal
     console.error("Registration error:", error);
     res.status(500).json({ message: "Server error during registration" });
   }
@@ -77,7 +77,7 @@ router.post('/login', async (req, res) => {
     res.status(200).json({ token });
 
   } catch (error) {
-    // This will log the specific database error to your backend terminal
+    // logs data base errors to the terminal
     console.error("Login error:", error);
     res.status(500).json({ message: "Server error during login" });
   }

@@ -59,7 +59,6 @@ router.get('/following', async (req, res) => {
 });
 
 
-// --- Other routes remain the same ---
 
 // GET /api/users/:username
 router.get('/:username', async (req, res) => {

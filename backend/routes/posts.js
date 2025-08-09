@@ -42,12 +42,12 @@ router.get('/', async (req, res) => {
 });
 
 
-// --- GET a single post by its ID ---
+// GET a single post by its ID 
 router.get('/:id', async (req, res) => {
   const { id } = req.params;
   const currentUserId = req.query.userId;
   try {
-    // UPDATED: Now includes p.User_account_id
+    // Now includes p.User_account_id
     const sql = `
       SELECT 
         p.Post_id, p.Post_caption, p.Post_imageurl, p.created_at, p.User_account_id,
@@ -72,7 +72,7 @@ router.get('/:id', async (req, res) => {
 });
 
 
-// --- NEW: DELETE a post by its ID ---
+// DELETE a post by its ID ---
 router.delete('/:id', protect, async (req, res) => {
   const postId = req.params.id;
   const currentUserId = req.user.id; // from protect middleware
@@ -103,7 +103,7 @@ router.delete('/:id', protect, async (req, res) => {
 });
 
 
-// --- Other routes (create, like, save) remain the same ---
+// --- POST a new post ---
 router.post('/', protect, (req, res) => {
   upload(req, res, async (err) => {
     if (err) { return res.status(500).json({ message: 'Error uploading file', error: err }); }
