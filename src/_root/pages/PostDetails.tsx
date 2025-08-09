@@ -1,14 +1,15 @@
 import { useState, useEffect } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { useAuth } from '@/context/AuthContext';
 
-// Reusing the Post interface from Home.tsx
+// UPDATED: Interface now includes the post author's ID
 interface Post {
   Post_id: number;
   Post_caption: string;
   Post_imageurl: string;
   created_at: string;
+  User_account_id: number; // The ID of the user who created the post
   User_username: string;
   User_image: string | null;
   like_count: number;
@@ -18,12 +19,13 @@ interface Post {
 
 const PostDetails = () => {
   const { id } = useParams<{ id: string }>();
-  const { user } = useAuth();
+  const { user: currentUser } = useAuth();
+  const navigate = useNavigate();
   const [post, setPost] = useState<Post | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // We need to redefine these handlers here or move them to a shared utility file
+  // --- UI Update Handlers ---
   const handleLikeToggle = (newLikedStatus: boolean, newLikeCount: number) => {
     if (!post) return;
     setPost({ ...post, user_has_liked: newLikedStatus, like_count: newLikeCount });
@@ -33,12 +35,30 @@ const PostDetails = () => {
     if (!post) return;
     setPost({ ...post, user_has_saved: newSavedStatus });
   };
+  
+  // --- NEW: Delete Handler ---
+  const handleDelete = async () => {
+    // A simple confirmation before deleting
+    if (window.confirm("Are you sure you want to delete this post?")) {
+      try {
+        const token = localStorage.getItem('token');
+        await axios.delete(`http://localhost:5000/api/posts/${post?.Post_id}`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        // On success, navigate back to the user's profile
+        navigate(`/profile/${currentUser?.username}`);
+      } catch (err) {
+        console.error("Failed to delete post", err);
+        alert("Failed to delete post. Please try again.");
+      }
+    }
+  };
 
   useEffect(() => {
     const fetchPost = async () => {
-      if (!id || !user) return;
+      if (!id || !currentUser) return;
       try {
-        const response = await axios.get(`http://localhost:5000/api/posts/${id}?userId=${user.id}`);
+        const response = await axios.get(`http://localhost:5000/api/posts/${id}?userId=${currentUser.id}`);
         setPost(response.data);
       } catch (err) {
         setError('Failed to fetch post details.');
@@ -48,7 +68,7 @@ const PostDetails = () => {
       }
     };
     fetchPost();
-  }, [id, user]);
+  }, [id, currentUser]);
 
   if (isLoading) return <div className="p-4 text-center">Loading post...</div>;
   if (error) return <div className="p-4 text-center text-red-500">{error}</div>;
@@ -57,15 +77,22 @@ const PostDetails = () => {
   return (
     <div className="post-details-container w-full max-w-4xl p-4 md:p-8">
       <div className="post-card bg-gray-800 p-5 rounded-xl shadow-lg">
-        <div className="flex items-center gap-3">
-          <img 
-            src={post.User_image ? `http://localhost:5000${post.User_image}` : '/assets/icons/profile-placeholder.svg'}
-            alt="creator"
-            className="w-12 h-12 rounded-full object-cover"
-          />
-          <Link to={`/profile/${post.User_username}`} className="font-semibold hover:underline">
-            {post.User_username}
+        <div className="flex justify-between items-center">
+          <Link to={`/profile/${post.User_username}`} className="flex items-center gap-3">
+            <img 
+              src={post.User_image ? `http://localhost:5000${post.User_image}` : '/assets/icons/profile-placeholder.svg'}
+              alt="creator"
+              className="w-12 h-12 rounded-full object-cover"
+            />
+            <p className="font-semibold hover:underline">{post.User_username}</p>
           </Link>
+          
+          {/* --- NEW: Conditional Delete Button --- */}
+          {currentUser?.id === post.User_account_id && (
+            <button onClick={handleDelete} className="p-2 rounded-full hover:bg-gray-700">
+              <img src="/assets/icons/delete.svg" alt="delete" width={24} height={24} />
+            </button>
+          )}
         </div>
         <div className="py-5">
           <p>{post.Post_caption}</p>
@@ -88,7 +115,6 @@ const PostDetails = () => {
 };
 
 // --- Child Components ---
-// Note: It's better practice to move these into their own files to avoid duplication.
 interface LikeButtonProps { post: Post; onLikeToggle: (newLikedStatus: boolean, newLikeCount: number) => void; }
 const LikeButton = ({ post, onLikeToggle }: LikeButtonProps) => {
   const [isSubmitting, setIsSubmitting] = useState(false);

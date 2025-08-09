@@ -16,15 +16,14 @@ const storage = multer.diskStorage({
 const upload = multer({ storage: storage }).single('image');
 
 
-// --- GET /api/posts - Fetch all posts for the feed ---
-// This is the updated route
+// --- GET all posts for the feed ---
 router.get('/', async (req, res) => {
   const currentUserId = req.query.userId;
   try {
-    // UPDATED SQL QUERY: This now selects the user's image URL (u.User_image)
+    // UPDATED: Now includes p.User_account_id
     const sql = `
       SELECT 
-        p.Post_id, p.Post_caption, p.Post_imageurl, p.created_at,
+        p.Post_id, p.Post_caption, p.Post_imageurl, p.created_at, p.User_account_id,
         u.User_username, u.User_image,
         (SELECT COUNT(*) FROM likes WHERE Post_id = p.Post_id) AS like_count,
         (SELECT COUNT(*) FROM saves WHERE Post_id = p.Post_id) AS save_count,
@@ -43,7 +42,68 @@ router.get('/', async (req, res) => {
 });
 
 
-// --- Route to Create a New Post ---
+// --- GET a single post by its ID ---
+router.get('/:id', async (req, res) => {
+  const { id } = req.params;
+  const currentUserId = req.query.userId;
+  try {
+    // UPDATED: Now includes p.User_account_id
+    const sql = `
+      SELECT 
+        p.Post_id, p.Post_caption, p.Post_imageurl, p.created_at, p.User_account_id,
+        u.User_username, u.User_image,
+        (SELECT COUNT(*) FROM likes WHERE Post_id = p.Post_id) AS like_count,
+        (SELECT COUNT(*) FROM saves WHERE Post_id = p.Post_id) AS save_count,
+        (SELECT COUNT(*) FROM likes WHERE Post_id = p.Post_id AND User_account_id = ?) > 0 AS user_has_liked,
+        (SELECT COUNT(*) FROM saves WHERE Post_id = p.Post_id AND User_account_id = ?) > 0 AS user_has_saved
+      FROM posts AS p
+      JOIN users AS u ON p.User_account_id = u.User_account_id
+      WHERE p.Post_id = ?
+    `;
+    const [posts] = await db.query(sql, [currentUserId, currentUserId, id]);
+    if (posts.length === 0) {
+      return res.status(404).json({ message: 'Post not found' });
+    }
+    res.status(200).json(posts[0]);
+  } catch (error) {
+    console.error("Error fetching single post:", error);
+    res.status(500).json({ message: "Server error while fetching post" });
+  }
+});
+
+
+// --- NEW: DELETE a post by its ID ---
+router.delete('/:id', protect, async (req, res) => {
+  const postId = req.params.id;
+  const currentUserId = req.user.id; // from protect middleware
+
+  try {
+    // 1. Verify the user owns the post
+    const findPostSql = "SELECT User_account_id FROM posts WHERE Post_id = ?";
+    const [posts] = await db.query(findPostSql, [postId]);
+
+    if (posts.length === 0) {
+      return res.status(404).json({ message: "Post not found." });
+    }
+
+    const postOwnerId = posts[0].User_account_id;
+    if (postOwnerId !== currentUserId) {
+      return res.status(403).json({ message: "Forbidden: You can only delete your own posts." });
+    }
+
+    // 2. If they own it, delete it
+    const deleteSql = "DELETE FROM posts WHERE Post_id = ?";
+    await db.query(deleteSql, [postId]);
+
+    res.status(200).json({ message: "Post deleted successfully" });
+  } catch (error) {
+    console.error("Error deleting post:", error);
+    res.status(500).json({ message: "Server error while deleting post" });
+  }
+});
+
+
+// --- Other routes (create, like, save) remain the same ---
 router.post('/', protect, (req, res) => {
   upload(req, res, async (err) => {
     if (err) { return res.status(500).json({ message: 'Error uploading file', error: err }); }
@@ -62,8 +122,6 @@ router.post('/', protect, (req, res) => {
   });
 });
 
-
-// --- Like/Unlike Routes ---
 router.post('/:id/like', protect, async (req, res) => {
   const postId = req.params.id;
   const userId = req.user.id;
@@ -92,8 +150,6 @@ router.delete('/:id/like', protect, async (req, res) => {
   }
 });
 
-
-// --- Save/Unsave Routes ---
 router.post('/:id/save', protect, async (req, res) => {
   const postId = req.params.id;
   const userId = req.user.id;
@@ -119,37 +175,6 @@ router.delete('/:id/save', protect, async (req, res) => {
   } catch (error) {
     console.error("Error unsaving post:", error);
     res.status(500).json({ message: 'Server error while unsaving post' });
-  }
-});
-
-
-router.get('/:id', async (req, res) => {
-  const { id } = req.params;
-  const currentUserId = req.query.userId;
-
-  try {
-    const sql = `
-      SELECT 
-        p.Post_id, p.Post_caption, p.Post_imageurl, p.created_at,
-        u.User_username, u.User_image,
-        (SELECT COUNT(*) FROM likes WHERE Post_id = p.Post_id) AS like_count,
-        (SELECT COUNT(*) FROM saves WHERE Post_id = p.Post_id) AS save_count,
-        (SELECT COUNT(*) FROM likes WHERE Post_id = p.Post_id AND User_account_id = ?) > 0 AS user_has_liked,
-        (SELECT COUNT(*) FROM saves WHERE Post_id = p.Post_id AND User_account_id = ?) > 0 AS user_has_saved
-      FROM posts AS p
-      JOIN users AS u ON p.User_account_id = u.User_account_id
-      WHERE p.Post_id = ?
-    `;
-    const [posts] = await db.query(sql, [currentUserId, currentUserId, id]);
-
-    if (posts.length === 0) {
-      return res.status(404).json({ message: 'Post not found' });
-    }
-
-    res.status(200).json(posts[0]);
-  } catch (error) {
-    console.error("Error fetching single post:", error);
-    res.status(500).json({ message: "Server error while fetching post" });
   }
 });
 
