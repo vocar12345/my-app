@@ -15,10 +15,36 @@ const storage = multer.diskStorage({
 });
 const upload = multer({ storage: storage }).single('image');
 
-// --- UPDATED: GET /api/users/followers ---
+
+// --- GET /api/users/saved ---
+// Fetches all posts saved by the logged-in user.
+router.get('/saved', protect, async (req, res) => {
+    try {
+        const userId = req.user.id;
+        // This query now uses `AS` to rename the columns to the snake_case format
+        const sql = `
+            SELECT 
+                p.Post_id AS post_id,
+                p.Post_caption AS post_caption,
+                p.Post_imageurl AS post_imageurl,
+                u.User_username AS user_username 
+            FROM posts AS p
+            JOIN saves AS s ON p.Post_id = s.Post_id
+            JOIN users AS u ON p.User_account_id = u.User_account_id
+            WHERE s.User_account_id = ?
+            ORDER BY s.created_at DESC
+        `;
+        const [posts] = await db.query(sql, [userId]);
+        res.status(200).json(posts);
+    } catch (error) {
+        console.error("Error fetching saved posts:", error);
+        res.status(500).json({ message: "Server error while fetching saved posts" });
+    }
+});
+
+// --- GET /api/users/followers ---
 router.get('/followers', async (req, res) => {
   try {
-    // We now get the username from a query parameter, e.g., ?username=testuser
     const { username } = req.query;
     if (!username) {
       return res.status(400).json({ message: "Username query parameter is required." });
@@ -37,7 +63,7 @@ router.get('/followers', async (req, res) => {
   }
 });
 
-// --- UPDATED: GET /api/users/following ---
+// --- GET /api/users/following ---
 router.get('/following', async (req, res) => {
   try {
     const { username } = req.query;
@@ -59,6 +85,7 @@ router.get('/following', async (req, res) => {
 });
 
 
+// --- Other routes remain the same ---
 
 // GET /api/users/:username
 router.get('/:username', async (req, res) => {

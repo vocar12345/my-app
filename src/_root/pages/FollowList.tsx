@@ -26,7 +26,7 @@ const FollowList = () => {
       if (!username) return;
       setIsLoading(true);
       try {
-        // The API call now uses a query parameter, which is more robust
+        // This API call now correctly uses a query parameter
         const response = await axios.get(`http://localhost:5000/api/users/${listType}?username=${username}`);
         setUsers(response.data);
       } catch (err) {
